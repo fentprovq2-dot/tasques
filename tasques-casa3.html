@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tasques de casa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --paper: #EBF0EE;
+    --paper-card: #F7FAF8;
+    --ink: #1F3A3D;
+    --ink-soft: #4C6B69;
+    --mustard: #C9962C;
+    --teal: #2F6E68;
+    --brick: #B5533C;
+    --line: #D3DEDA;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  header{
+    position: relative;
+    padding: 30px 20px 22px;
+    background: var(--ink);
+    color: var(--paper-card);
+    overflow: hidden;
+  }
+  header .tile-strip{
+    position:absolute; inset:0;
+    opacity: 0.16;
+    background-image: radial-gradient(circle at 0 0, transparent 60%, var(--mustard) 61%, var(--mustard) 64%, transparent 65%),
+                       radial-gradient(circle at 100% 0, transparent 60%, var(--mustard) 61%, var(--mustard) 64%, transparent 65%),
+                       radial-gradient(circle at 0 100%, transparent 60%, var(--mustard) 61%, var(--mustard) 64%, transparent 65%),
+                       radial-gradient(circle at 100% 100%, transparent 60%, var(--mustard) 61%, var(--mustard) 64%, transparent 65%);
+    background-size: 44px 44px;
+    background-repeat: repeat;
+  }
+  header h1{
+    position:relative;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.7rem;
+    margin: 0 0 4px;
+    letter-spacing: 0.2px;
+  }
+  header p{
+    position:relative;
+    margin:0;
+    font-size: 0.86rem;
+    color: #C9D6D3;
+  }
+  .who-line{
+    position:relative;
+    margin-top: 10px;
+    font-size: 0.78rem;
+    color: #C9D6D3;
+    display:flex; align-items:center; gap:8px;
+  }
+  .who-line .avatar{
+    width:18px; height:18px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono'; font-size:0.62rem; color:white; font-weight:600;
+    flex-shrink:0;
+  }
+  .who-line button{
+    background:none; border:none;
+    color: var(--mustard);
+    font-family:'Inter'; font-size:0.78rem; font-weight:600;
+    cursor:pointer; padding:0; text-decoration: underline;
+  }
+  .sync-note{
+    position:relative;
+    margin-top: 6px;
+    font-size: 0.68rem;
+    color: #8FA6A3;
+  }
+
+  main{ padding: 16px 14px 0; max-width: 560px; margin: 0 auto; }
+
+  .add-box{
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    overflow:hidden;
+  }
+  .add-toggle{
+    width:100%;
+    display:flex; align-items:center; gap:10px;
+    padding: 14px 16px;
+    background:none; border:none;
+    font-family:'Inter'; font-size:0.95rem; font-weight:600;
+    color: var(--ink);
+    cursor:pointer;
+  }
+  .add-toggle .plus-icon{
+    width:24px; height:24px; border-radius:50%;
+    background: var(--mustard);
+    color: white; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; font-size:1.1rem; line-height:1;
+    transition: transform 0.2s ease;
+  }
+  .add-toggle.open .plus-icon{ transform: rotate(45deg); }
+
+  .add-form{ padding: 0 16px 16px; display:none; }
+  .add-form.show{ display:block; }
+  .add-form label{
+    display:block;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    margin: 12px 0 6px;
+  }
+  .add-form input[type=text], .add-form input[type=time]{
+    width:100%;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-family:'Inter'; font-size: 0.95rem;
+    background: white;
+    color: var(--ink);
+  }
+  .day-picker{ display:flex; gap:6px; flex-wrap:wrap; }
+  .day-toggle{
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: white;
+    font-family:'IBM Plex Mono'; font-size: 0.8rem; font-weight:500;
+    color: var(--ink-soft);
+    cursor:pointer;
+  }
+  .day-toggle.active{ background: var(--teal); border-color: var(--teal); color: white; }
+  .submit-btn{
+    margin-top: 16px; width:100%; padding: 12px; border:none; border-radius: 10px;
+    background: var(--ink); color: white;
+    font-family:'Inter'; font-weight:600; font-size:0.92rem; cursor:pointer;
+  }
+  .submit-btn:active{ opacity:0.85; }
+  .submit-btn:disabled{ opacity:0.5; cursor:default; }
+
+  .empty-state{ text-align:center; padding: 40px 20px; color: var(--ink-soft); font-size: 0.92rem; line-height:1.5; }
+
+  .task-card{
+    background: var(--paper-card); border: 1px solid var(--line);
+    border-radius: var(--radius); margin-bottom: 12px; overflow:hidden;
+  }
+  .task-row{ display:flex; align-items:flex-start; gap: 12px; padding: 14px 14px 10px; cursor:pointer; }
+
+  .tile-check{
+    flex-shrink:0; width: 34px; height: 34px; border-radius: 8px;
+    border: 1.5px solid var(--line); background: white;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;
+  }
+  .tile-check.checked{ background: var(--mustard); border-color: var(--mustard); }
+  .tile-check svg{ width:20px; height:20px; }
+  .tile-check .petals{ fill: var(--teal); opacity:0; transition: opacity .15s ease; }
+  .tile-check.checked .petals{ opacity:1; }
+
+  .task-main{ flex:1; min-width:0; }
+  .task-name{ font-size: 0.98rem; font-weight: 600; color: var(--ink); margin: 4px 0 6px; word-break: break-word; }
+  .task-name.done{ color: var(--ink-soft); text-decoration: line-through; text-decoration-color: var(--teal); }
+
+  .task-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .time-chip{ font-family:'IBM Plex Mono'; font-size: 0.72rem; background: var(--paper); color: var(--ink-soft); padding: 2px 7px; border-radius: 6px; }
+  .who-chip{ display:flex; align-items:center; gap:5px; font-size:0.72rem; color: var(--ink-soft); background: var(--paper); padding: 2px 7px 2px 4px; border-radius: 6px; }
+  .who-dot{ width:14px; height:14px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size:0.55rem; color:white; font-weight:700; }
+
+  .day-pips{ display:flex; gap:3px; }
+  .pip{ width:15px; height:15px; border-radius: 4px; font-size: 0; background: var(--line); position:relative; }
+  .pip.scheduled{ background: var(--ink-soft); opacity: 0.35; }
+  .pip.today{ box-shadow: 0 0 0 2px var(--mustard); }
+
+  .progress-track{ height: 5px; border-radius: 3px; background: var(--paper); overflow:hidden; margin-bottom:4px; }
+  .progress-fill{ height:100%; background: var(--teal); border-radius:3px; transition: width 0.3s ease; }
+  .progress-fill.full{ background: var(--mustard); }
+  .progress-label{ font-size: 0.7rem; color: var(--ink-soft); }
+
+  .chevron{ flex-shrink:0; width:20px; height:20px; color: var(--ink-soft); transition: transform 0.2s ease; margin-top: 6px; }
+  .chevron.open{ transform: rotate(180deg); }
+
+  .expand-panel{ display:none; padding: 4px 16px 16px; border-top: 1px solid var(--line); }
+  .expand-panel.show{ display:block; }
+  .cal-header{ font-family:'IBM Plex Mono'; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color: var(--ink-soft); margin: 12px 0 8px; }
+  .cal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align:center; }
+  .cal-wd{ font-size:0.62rem; color: var(--ink-soft); padding-bottom:2px; }
+  .cal-day{ aspect-ratio: 1; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size: 0.68rem; border-radius: 6px; color: var(--ink-soft); position:relative; }
+  .cal-day.blank{ visibility:hidden; }
+  .cal-day.done{ color:white; font-weight:700; }
+  .cal-day.missed{ box-shadow: inset 0 0 0 1.3px var(--brick); color: var(--brick); }
+  .cal-day.future-sched{ box-shadow: inset 0 0 0 1.3px var(--line); }
+
+  .legend{ display:flex; flex-wrap:wrap; gap: 10px; margin-top: 12px; }
+  .legend-item{ display:flex; align-items:center; gap:5px; font-size:0.72rem; color: var(--ink-soft); }
+  .legend-dot{ width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+
+  .delete-btn{
+    margin-top: 14px; width:100%; padding: 10px; border: 1px solid var(--brick); border-radius: 9px;
+    background: none; color: var(--brick); font-family:'Inter'; font-weight:600; font-size:0.85rem; cursor:pointer;
+  }
+
+  .overlay{
+    position: fixed; inset:0; background: rgba(31,58,61,0.55);
+    display:flex; align-items:flex-end; justify-content:center; z-index: 50;
+  }
+  .overlay-card{
+    background: var(--paper-card); width:100%; max-width: 480px;
+    border-radius: 18px 18px 0 0; padding: 22px 20px 26px;
+  }
+  .overlay-card h2{ font-family:'Fraunces', serif; font-size:1.2rem; margin:0 0 6px; color: var(--ink); }
+  .overlay-card p{ font-size:0.85rem; color: var(--ink-soft); margin: 0 0 14px; line-height:1.4; }
+  .overlay-card input[type=text]{
+    width:100%; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px;
+    font-family:'Inter'; font-size: 0.95rem; background: white; color: var(--ink); margin-bottom: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tile-strip"></div>
+  <h1>Tasques de casa</h1>
+  <p id="today-label"></p>
+  <div class="who-line">
+    <span id="whoAvatar" class="avatar"></span>
+    <span id="whoText">Ets: —</span>
+    <button id="changeNameBtn">canvia</button>
+  </div>
+  <div class="sync-note" id="syncNote">Connectant amb la base de dades…</div>
+</header>
+
+<main>
+  <div class="add-box">
+    <button class="add-toggle" id="addToggle">
+      <span class="plus-icon">+</span> Afegeix una tasca
+    </button>
+    <div class="add-form" id="addForm">
+      <label for="taskName">Nom de la tasca</label>
+      <input type="text" id="taskName" placeholder="p. ex. Treure les escombraries" maxlength="60">
+
+      <label>Dies de la setmana</label>
+      <div class="day-picker" id="dayPicker"></div>
+
+      <label for="taskTime">Hora (opcional)</label>
+      <input type="time" id="taskTime">
+
+      <button class="submit-btn" id="submitTask">Afegir tasca</button>
+    </div>
+  </div>
+
+  <div id="taskList"></div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://stjgveecbuxkoxobnyoy.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0amd2ZWVjYnV4a294b2JueW95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMjY5MTAsImV4cCI6MjA5MzgwMjkxMH0.DUQB51ZCQ6f-iNvkQwPD9c_5tHPQeTfAVq8wEM6lTWY';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const DAY_LABELS = ['L','M','X','J','V','S','D'];
+const DAY_FULL = ['Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte','Diumenge'];
+const MONTHS = ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'];
+const NAME_KEY = 'household-my-name';
+const TABLE = 'household_tasks';
+
+let tasks = [];
+let selectedDays = new Set();
+let expandedId = null;
+let myName = null;
+let pendingCompletion = null;
+
+function pad(n){ return n.toString().padStart(2,'0'); }
+function dateStr(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function isoDay(d){ return (d.getDay()+6)%7; }
+function todayStr(){ return dateStr(new Date()); }
+
+function initials(name){
+  return name.trim().split(/\s+/).slice(0,2).map(w => w[0].toUpperCase()).join('');
+}
+function hashColor(name){
+  let h = 0;
+  for(let i=0;i<name.length;i++){ h = name.charCodeAt(i) + ((h<<5)-h); }
+  const hue = Math.abs(h) % 360;
+  return `hsl(${hue}, 50%, 40%)`;
+}
+
+function loadName(){
+  myName = localStorage.getItem(NAME_KEY) || null;
+}
+function saveName(name){
+  localStorage.setItem(NAME_KEY, name);
+}
+
+function setSyncNote(text){
+  document.getElementById('syncNote').textContent = text;
+}
+
+async function fetchTasks(){
+  const { data, error } = await sb.from(TABLE).select('*').order('created_at', { ascending: true });
+  if(error){
+    console.error(error);
+    setSyncNote('No s\'ha pogut connectar amb la base de dades.');
+    return;
+  }
+  tasks = (data || []).map(row => ({
+    id: row.id,
+    name: row.name,
+    time: row.time,
+    days: row.days || [],
+    completions: row.completions || {}
+  }));
+  setSyncNote('Sincronitzat amb tots els dispositius.');
+}
+
+async function refresh(){
+  await fetchTasks();
+  render();
+}
+
+function updateWhoLine(){
+  const av = document.getElementById('whoAvatar');
+  const txt = document.getElementById('whoText');
+  if(myName){
+    av.textContent = initials(myName);
+    av.style.background = hashColor(myName);
+    txt.textContent = `Ets: ${myName}`;
+  } else {
+    av.textContent = '?';
+    av.style.background = 'var(--ink-soft)';
+    txt.textContent = 'Encara no t\'has identificat';
+  }
+}
+
+function openNameOverlay(forCompletion){
+  pendingCompletion = forCompletion || null;
+  const ov = document.createElement('div');
+  ov.className = 'overlay';
+  ov.id = 'nameOverlay';
+  ov.innerHTML = `
+    <div class="overlay-card">
+      <h2>Com et dius?</h2>
+      <p>El teu nom es guarda només en aquest dispositiu i s'afegirà a les tasques que marquis com a fetes, perquè tothom sàpiga qui ha fet què.</p>
+      <input type="text" id="nameInput" placeholder="p. ex. Laura" maxlength="30" value="${myName ? myName.replace(/"/g,'') : ''}">
+      <button class="submit-btn" id="saveNameBtn">Desa</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const input = document.getElementById('nameInput');
+  input.focus();
+  document.getElementById('saveNameBtn').addEventListener('click', () => {
+    const val = input.value.trim();
+    if(!val){ input.focus(); return; }
+    myName = val;
+    saveName(val);
+    updateWhoLine();
+    ov.remove();
+    if(pendingCompletion){
+      toggleCompletion(pendingCompletion.taskId);
+      pendingCompletion = null;
+    }
+  });
+}
+
+document.getElementById('changeNameBtn').addEventListener('click', () => openNameOverlay());
+
+function buildDayPicker(){
+  const wrap = document.getElementById('dayPicker');
+  wrap.innerHTML = '';
+  DAY_LABELS.forEach((lab, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'day-toggle';
+    btn.textContent = lab;
+    btn.dataset.idx = idx;
+    btn.addEventListener('click', () => {
+      if(selectedDays.has(idx)) selectedDays.delete(idx); else selectedDays.add(idx);
+      btn.classList.toggle('active');
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+function weekProgress(task){
+  const days = task.days.length ? task.days : [0,1,2,3,4,5,6];
+  let due = 0, done = 0;
+  const today = new Date();
+  for(let i=0;i<7;i++){
+    const d = new Date(today);
+    d.setDate(d.getDate()-i);
+    if(days.includes(isoDay(d))){
+      due++;
+      if(task.completions[dateStr(d)]) done++;
+    }
+  }
+  return {due, done};
+}
+
+function persistCompletions(task){
+  sb.from(TABLE).update({ completions: task.completions }).eq('id', task.id)
+    .then(({error}) => { if(error) console.error(error); });
+}
+
+function toggleCompletion(taskId){
+  const task = tasks.find(t => t.id === taskId);
+  if(!task) return;
+  const ds = todayStr();
+  if(task.completions[ds]){
+    delete task.completions[ds];
+    persistCompletions(task);
+    render();
+    return;
+  }
+  if(!myName){
+    openNameOverlay({taskId});
+    return;
+  }
+  task.completions[ds] = myName;
+  persistCompletions(task);
+  render();
+}
+
+function taskRow(task){
+  const days = task.days.length ? task.days : [0,1,2,3,4,5,6];
+  const doneByToday = task.completions[todayStr()];
+  const {due, done} = weekProgress(task);
+  const pct = due ? Math.round((done/due)*100) : 0;
+  const todayIdx = isoDay(new Date());
+
+  const card = document.createElement('div');
+  card.className = 'task-card';
+
+  const row = document.createElement('div');
+  row.className = 'task-row';
+
+  const check = document.createElement('button');
+  check.className = 'tile-check' + (doneByToday ? ' checked' : '');
+  check.innerHTML = `<svg viewBox="0 0 20 20" class="petals">
+      <path d="M10 10 L10 2 A8 8 0 0 1 18 10 Z"/>
+      <path d="M10 10 L18 10 A8 8 0 0 1 10 18 Z"/>
+      <path d="M10 10 L10 18 A8 8 0 0 1 2 10 Z"/>
+      <path d="M10 10 L2 10 A8 8 0 0 1 10 2 Z"/>
+    </svg>`;
+  check.addEventListener('click', (e) => { e.stopPropagation(); toggleCompletion(task.id); });
+
+  const main = document.createElement('div');
+  main.className = 'task-main';
+
+  const name = document.createElement('div');
+  name.className = 'task-name' + (doneByToday ? ' done' : '');
+  name.textContent = task.name;
+
+  const meta = document.createElement('div');
+  meta.className = 'task-meta';
+  if(task.time){
+    const chip = document.createElement('span');
+    chip.className = 'time-chip';
+    chip.textContent = task.time;
+    meta.appendChild(chip);
+  }
+  if(doneByToday){
+    const who = document.createElement('span');
+    who.className = 'who-chip';
+    const dot = document.createElement('span');
+    dot.className = 'who-dot';
+    dot.style.background = hashColor(doneByToday);
+    dot.textContent = initials(doneByToday);
+    who.appendChild(dot);
+    who.append(`Fet per ${doneByToday}`);
+    meta.appendChild(who);
+  }
+  const pips = document.createElement('div');
+  pips.className = 'day-pips';
+  DAY_LABELS.forEach((_, idx) => {
+    const pip = document.createElement('span');
+    pip.className = 'pip' + (days.includes(idx) ? ' scheduled' : '') + (idx===todayIdx ? ' today' : '');
+    pips.appendChild(pip);
+  });
+  meta.appendChild(pips);
+
+  const track = document.createElement('div');
+  track.className = 'progress-track';
+  const fill = document.createElement('div');
+  fill.className = 'progress-fill' + (pct>=100 ? ' full' : '');
+  fill.style.width = pct + '%';
+  track.appendChild(fill);
+
+  const label = document.createElement('div');
+  label.className = 'progress-label';
+  label.textContent = `${done}/${due} aquesta setmana`;
+
+  main.appendChild(name);
+  main.appendChild(meta);
+  main.appendChild(track);
+  main.appendChild(label);
+
+  const chevron = document.createElement('div');
+  chevron.className = 'chevron' + (expandedId===task.id ? ' open' : '');
+  chevron.innerHTML = `<svg viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+  row.appendChild(check);
+  row.appendChild(main);
+  row.appendChild(chevron);
+  row.addEventListener('click', () => {
+    expandedId = (expandedId === task.id) ? null : task.id;
+    render();
+  });
+
+  card.appendChild(row);
+
+  const panel = document.createElement('div');
+  panel.className = 'expand-panel' + (expandedId===task.id ? ' show' : '');
+  if(expandedId === task.id){
+    panel.appendChild(buildCalendar(task));
+    const del = document.createElement('button');
+    del.className = 'delete-btn';
+    del.textContent = 'Elimina la tasca';
+    del.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if(confirm(`Segur que vols eliminar "${task.name}"?`)){
+        const { error } = await sb.from(TABLE).delete().eq('id', task.id);
+        if(error){ console.error(error); alert('No s\'ha pogut eliminar la tasca.'); return; }
+        tasks = tasks.filter(t => t.id !== task.id);
+        expandedId = null;
+        render();
+      }
+    });
+    panel.appendChild(del);
+  }
+  card.appendChild(panel);
+
+  return card;
+}
+
+function buildCalendar(task){
+  const wrap = document.createElement('div');
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth();
+
+  const header = document.createElement('div');
+  header.className = 'cal-header';
+  header.textContent = `${MONTHS[month]} ${year}`;
+  wrap.appendChild(header);
+
+  const grid = document.createElement('div');
+  grid.className = 'cal-grid';
+  ['dl','dt','dc','dj','dv','ds','dg'].forEach(w => {
+    const el = document.createElement('div');
+    el.className = 'cal-wd';
+    el.textContent = w;
+    grid.appendChild(el);
+  });
+
+  const firstOfMonth = new Date(year, month, 1);
+  const leadBlanks = isoDay(firstOfMonth);
+  for(let i=0;i<leadBlanks;i++){
+    const el = document.createElement('div');
+    el.className = 'cal-day blank';
+    grid.appendChild(el);
+  }
+
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const days = task.days.length ? task.days : [0,1,2,3,4,5,6];
+  const todayDs = todayStr();
+  const namesSeen = new Set();
+
+  for(let day=1; day<=daysInMonth; day++){
+    const d = new Date(year, month, day);
+    const ds = dateStr(d);
+    const el = document.createElement('div');
+    el.className = 'cal-day';
+    const scheduled = days.includes(isoDay(d));
+    const who = task.completions[ds];
+    if(who){
+      el.classList.add('done');
+      el.style.background = hashColor(who);
+      el.textContent = initials(who);
+      el.title = `${who} — ${day} de ${MONTHS[month]}`;
+      namesSeen.add(who);
+    } else {
+      el.textContent = day;
+      if(scheduled && ds < todayDs) el.classList.add('missed');
+      else if(scheduled) el.classList.add('future-sched');
+    }
+    grid.appendChild(el);
+  }
+  wrap.appendChild(grid);
+
+  if(namesSeen.size){
+    const legend = document.createElement('div');
+    legend.className = 'legend';
+    namesSeen.forEach(n => {
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      const dot = document.createElement('span');
+      dot.className = 'legend-dot';
+      dot.style.background = hashColor(n);
+      item.appendChild(dot);
+      item.append(n);
+      legend.appendChild(item);
+    });
+    wrap.appendChild(legend);
+  }
+  return wrap;
+}
+
+function render(){
+  const list = document.getElementById('taskList');
+  list.innerHTML = '';
+  if(tasks.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = 'Encara no hi ha cap tasca. Afegeix-ne una per començar a fer el seguiment de la feina de casa entre tots.';
+    list.appendChild(empty);
+    return;
+  }
+  const sorted = [...tasks].sort((a,b) => {
+    if(a.time && b.time) return a.time.localeCompare(b.time);
+    if(a.time) return -1;
+    if(b.time) return 1;
+    return a.name.localeCompare(b.name, 'ca');
+  });
+  sorted.forEach(t => list.appendChild(taskRow(t)));
+}
+
+function setTodayLabel(){
+  const d = new Date();
+  document.getElementById('today-label').textContent =
+    `${DAY_FULL[isoDay(d)]}, ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
+}
+
+document.getElementById('addToggle').addEventListener('click', () => {
+  const form = document.getElementById('addForm');
+  const btn = document.getElementById('addToggle');
+  form.classList.toggle('show');
+  btn.classList.toggle('open');
+});
+
+document.getElementById('submitTask').addEventListener('click', async () => {
+  const nameInput = document.getElementById('taskName');
+  const timeInput = document.getElementById('taskTime');
+  const val = nameInput.value.trim();
+  if(!val){ nameInput.focus(); return; }
+
+  const submitBtn = document.getElementById('submitTask');
+  submitBtn.disabled = true;
+
+  const payload = {
+    name: val,
+    time: timeInput.value || null,
+    days: Array.from(selectedDays).sort(),
+    completions: {}
+  };
+
+  const { data, error } = await sb.from(TABLE).insert(payload).select().single();
+  submitBtn.disabled = false;
+
+  if(error){
+    console.error(error);
+    alert('No s\'ha pogut afegir la tasca. Comprova la connexió i torna-ho a provar.');
+    return;
+  }
+
+  tasks.push({
+    id: data.id, name: data.name, time: data.time,
+    days: data.days || [], completions: data.completions || {}
+  });
+
+  nameInput.value = '';
+  timeInput.value = '';
+  selectedDays.clear();
+  document.querySelectorAll('.day-toggle.active').forEach(b => b.classList.remove('active'));
+  document.getElementById('addForm').classList.remove('show');
+  document.getElementById('addToggle').classList.remove('open');
+
+  render();
+});
+
+async function init(){
+  buildDayPicker();
+  setTodayLabel();
+  loadName();
+  updateWhoLine();
+  await refresh();
+  setInterval(refresh, 15000);
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) refresh(); });
+}
+init();
+</script>
+</body>
+</html>
